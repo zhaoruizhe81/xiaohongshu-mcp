@@ -144,3 +144,38 @@ func dwell(ctx context.Context, minS, maxS int) {
 	case <-ctx.Done():
 	}
 }
+
+// 详情页评论滚动容器的候选选择器。
+var commentScrollerSelectors = []string{".note-scroller", ".comments-container"}
+
+// ReadComments 在当前详情页下滑评论区，模拟翻看评论（轻量：只滚动+停留，不加载全量）。
+func (s *Session) ReadComments(ctx context.Context, screens int) {
+	if screens <= 0 {
+		return
+	}
+	moveIntoCommentScroller(s.page)
+	logrus.Infof("翻看评论区 %d 屏", screens)
+	for i := 0; i < screens; i++ {
+		delta := 380 + rand.Float64()*380
+		_ = s.page.Mouse.Scroll(0, delta, 8)
+		time.Sleep(time.Duration(20+rand.Intn(60)) * time.Millisecond)
+		dwell(ctx, 1, 4) // 每屏停留看评论
+	}
+}
+
+// moveIntoCommentScroller 把指针移入评论区滚动容器，确保滚轮作用于评论而非整页。
+func moveIntoCommentScroller(page *rod.Page) {
+	for _, sel := range commentScrollerSelectors {
+		el, err := page.Timeout(2 * time.Second).Element(sel)
+		if err != nil || el == nil {
+			continue
+		}
+		sh, err := el.Shape()
+		if err != nil || len(sh.Quads) == 0 {
+			continue
+		}
+		q := sh.Quads[0]
+		_ = page.Mouse.MoveTo(proto.Point{X: (q[0] + q[4]) / 2, Y: (q[1] + q[5]) / 2})
+		return
+	}
+}

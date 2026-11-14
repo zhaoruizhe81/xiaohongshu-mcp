@@ -151,6 +151,10 @@ func (openBehavior) Run(c *BehaviorCtx) error {
 	}
 	c.Stats.Open++
 	noteWatch(c.Ctx, detail)
+	// 多数情况会翻一下评论区（模拟看评论）
+	if rand.Float64() < 0.7 {
+		c.S.ReadComments(c.Ctx, 2+rand.Intn(4)) // 2~5 屏
+	}
 	return nil
 }
 
@@ -237,6 +241,10 @@ func (commentBehavior) Run(c *BehaviorCtx) error {
 		return err
 	}
 	noteWatch(c.Ctx, detail) // 先看一会再评论，像人
+	// 评论前先翻看评论，更像真人
+	if rand.Float64() < 0.6 {
+		c.S.ReadComments(c.Ctx, 1+rand.Intn(3))
+	}
 	text, err := c.Commenter.Generate(c.Ctx, c.Acc.ID, detail, c.Persona)
 	if err != nil || text == "" {
 		return err
