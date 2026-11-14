@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -12,8 +13,16 @@ import (
 )
 
 func main() {
+	loadDotEnv(".env") // 本地 .env 提供默认，真实环境变量优先
+
 	once := flag.Bool("once", false, "立即跑一场后退出（调试用）")
+	llmcheck := flag.Bool("llmcheck", false, "只测试 LLM 连通后退出")
 	flag.Parse()
+
+	if *llmcheck {
+		runLLMCheck()
+		return
+	}
 
 	if err := os.MkdirAll("data", 0o755); err != nil {
 		logrus.Fatal(err)
@@ -74,4 +83,18 @@ func buildCommenter(st *store.Store) Commenter {
 	}
 	logrus.Infof("已启用多模态评论：%s @ %s", cfg.Model, cfg.BaseURL)
 	return commentgen.New(llm.New(cfg), st)
+}
+
+// runLLMCheck 只测 LLM 连通（供 -llmcheck）。
+func runLLMCheck() {
+	cfg := llm.FromEnv()
+	if !cfg.Enabled() {
+		logrus.Fatal("LLM 未配置：需要 LLM_MODEL(或 OPENAI_MODEL) + API_KEY(LLM_API_KEY / OPENAI_API_KEY)")
+	}
+	logrus.Infof("测试 LLM：%s @ %s", cfg.Model, cfg.BaseURL)
+	out, err := llm.New(cfg).Chat(context.Background(), "你是助手。", "只回复两个字：你好", nil)
+	if err != nil {
+		logrus.Fatalf("调用失败：%v", err)
+	}
+	logrus.Infof("LLM 返回：%s", out)
 }

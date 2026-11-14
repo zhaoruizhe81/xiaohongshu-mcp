@@ -44,3 +44,16 @@ sqlite3 -header -column "$DB" "SELECT * FROM risk_events ORDER BY id DESC LIMIT 
 ## 登录 / 换号
 - 登录：`go run ./cmd/login`（扫码，生成 cookies.json）。
 - 换号：备份/替换 `cookies.json`（对应 `COOKIES_PATH`）；多号需给每个号单独 cookie+seed+proxy（`browser.NewBrowser` 需加 `WithCookiesPath`）。
+
+
+## LLM 本地配置（.env，推荐）
+工程根目录放 `.env`（已 gitignore），keeper 启动自动加载，**真实环境变量优先**。
+兼容两套命名：`LLM_*` 优先，回退标准 `OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL`。
+```
+OPENAI_BASE_URL=http://127.0.0.1:3425/v1
+OPENAI_API_KEY=sk-xxxx
+LLM_MODEL=zhipu/glm-5.3-flash
+LLM_TEMPERATURE=0.85
+```
+诊断连通：`go run ./cmd/keeper -llmcheck`（只调 LLM 后退出，不开浏览器）。
+视觉需选**多模态**型号（如 GLM 系）；不支持 image_url 会自动退化纯文本。

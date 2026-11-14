@@ -23,21 +23,30 @@ type Config struct {
 }
 
 // FromEnv 从环境变量读取配置。
-// LLM_BASE_URL 默认 https://api.openai.com/v1；LLM_MODEL / LLM_API_KEY 必须显式给。
+// 兼容两套命名：优先 LLM_*，回退标准 OPENAI_*（LLM_BASE_URL/OPENAI_BASE_URL 等）。
 func FromEnv() Config {
 	temp := 0.85
-	if v := os.Getenv("LLM_TEMPERATURE"); v != "" {
+	if v := firstNonEmpty(os.Getenv("LLM_TEMPERATURE"), os.Getenv("OPENAI_TEMPERATURE")); v != "" {
 		if f, err := strconv.ParseFloat(v, 64); err == nil {
 			temp = f
 		}
 	}
 	return Config{
-		BaseURL:     strings.TrimRight(envOr("LLM_BASE_URL", "https://api.openai.com/v1"), "/"),
-		APIKey:      os.Getenv("LLM_API_KEY"),
-		Model:       os.Getenv("LLM_MODEL"),
+		BaseURL:     strings.TrimRight(firstNonEmpty(os.Getenv("LLM_BASE_URL"), os.Getenv("OPENAI_BASE_URL"), "https://api.openai.com/v1"), "/"),
+		APIKey:      firstNonEmpty(os.Getenv("LLM_API_KEY"), os.Getenv("OPENAI_API_KEY")),
+		Model:       firstNonEmpty(os.Getenv("LLM_MODEL"), os.Getenv("OPENAI_MODEL")),
 		Temperature: temp,
 		Timeout:     60 * time.Second,
 	}
+}
+
+func firstNonEmpty(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
 }
 
 // Enabled 配置齐全才可用。
@@ -132,11 +141,4 @@ func (c *Client) Chat(ctx context.Context, system, userText string, imageDataURL
 		return "", fmt.Errorf("LLM 返回空 choices")
 	}
 	return strings.TrimSpace(cr.Choices[0].Message.Content), nil
-}
-
-func envOr(k, d string) string {
-	if v := os.Getenv(k); v != "" {
-		return v
-	}
-	return d
 }
