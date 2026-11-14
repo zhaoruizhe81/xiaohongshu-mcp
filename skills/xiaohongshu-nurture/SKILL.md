@@ -21,6 +21,14 @@ cd <工程目录>
 go run ./cmd/keeper -once    # 单场调试：跑完即退
 go run ./cmd/keeper          # 常驻：活跃时段自动开场 + 小后台
 ```
+单场编排参数（配合 `-once`）：
+```bash
+go run ./cmd/keeper -once -account demo -stage 3 \
+  -persona "20岁女生，轻松口语化" -keywords '["美食","穿搭"]' -minutes 6
+```
+- `-stage 0..4` 本次设置阶段；`-minutes N` 调试用限时（0=按节奏随机）。
+- `-behavior like|comment|open_note|browse_feed|...` 只跑单个行为（调试/验收用，会先刷少量填队列）。
+- `-llmcheck` 只测 LLM 连通后退出。
 - 后台默认 `http://127.0.0.1:18061`（`ADMIN_ADDR` 可改）。
 - 仅做只读采集才 `-headless=true`；养号务必有头。
 

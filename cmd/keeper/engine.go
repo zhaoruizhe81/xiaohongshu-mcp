@@ -13,8 +13,10 @@ import (
 
 // Engine 养号执行引擎：驱动一场会话的行为循环。
 type Engine struct {
-	st        *store.Store
-	Commenter Commenter // P4 注入；nil 则不做评论
+	st            *store.Store
+	Commenter     Commenter     // P4 注入；nil 则不做评论
+	Duration      time.Duration // >0 时覆盖单场时长（调试用；0=按节奏随机）
+	ForceBehavior string        // 非空时只跑该行为（调试/编排用）
 }
 
 func NewEngine(st *store.Store) *Engine { return &Engine{st: st} }
@@ -46,9 +48,20 @@ func (e *Engine) RunSession(acc *store.Account) error {
 
 	sid, _ := e.st.StartSession(acc.ID)
 	_ = e.st.IncrUsage(acc.ID, day, "sessions", 1) // 计入当日场次
-	deadline := now.Add(SampleSessionDuration())
+	dur := SampleSessionDuration()
+	if e.Duration > 0 {
+		dur = e.Duration
+	}
+	deadline := now.Add(dur)
 	outcome := "done"
 	logrus.Infof("账号 %s 开始会话(阶段=%s 时长≈%s)", acc.ID, Stage(acc.Stage), time.Until(deadline).Round(time.Minute))
+
+	// 强制行为模式：先刷少量填队列，再只跑指定行为
+	if e.ForceBehavior != "" {
+		logrus.Infof("强制行为模式: %s（先刷少量填队列）", e.ForceBehavior)
+		_ = s.safe(func() error { return s.BrowseFeed(bctx.Ctx, 12, 1) })
+		logrus.Infof("预填完成，队列 %d 条", len(s.queue))
+	}
 
 	for time.Now().Before(deadline) {
 		// 每步先做健康检查，命中验证页/登录页立即熔断
@@ -82,6 +95,14 @@ func (e *Engine) RunSession(acc *store.Account) error {
 
 // pick 按行为权重抽样；权重全 0 返回 nil（会话提前结束）。
 func (e *Engine) pick(c *BehaviorCtx) Behavior {
+	if e.ForceBehavior != "" {
+		for _, b := range allBehaviors() {
+			if b.Key() == e.ForceBehavior && b.Weight(c) > 0 {
+				return b
+			}
+		}
+		return nil
+	}
 	behaviors := allBehaviors()
 	weights := make([]float64, len(behaviors))
 	total := 0.0

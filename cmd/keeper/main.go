@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/xpzouying/xiaohongshu-mcp/internal/admin"
@@ -17,6 +18,12 @@ func main() {
 
 	once := flag.Bool("once", false, "立即跑一场后退出（调试用）")
 	llmcheck := flag.Bool("llmcheck", false, "只测试 LLM 连通后退出")
+	accountID := flag.String("account", "demo", "账号 ID")
+	stageFlag := flag.Int("stage", -1, "设置账号阶段 0-4（-1 不改）")
+	persona := flag.String("persona", "", "设置语言风格（空=不改）")
+	keywords := flag.String("keywords", "", "设置兴趣关键词 JSON（空=不改）")
+	minutes := flag.Int("minutes", 0, "单场时长(分钟, 调试用; 0=按节奏随机)")
+	behavior := flag.String("behavior", "", "强制单一行为(调试): like/favorite/comment/open_note/browse_feed/search_browse/visit_profile/check_notif/rest")
 	flag.Parse()
 
 	if *llmcheck {
@@ -33,15 +40,34 @@ func main() {
 	}
 	defer st.Close()
 
-	// 示例账号（真实场景由后台/配置下发）
-	acc, err := st.EnsureAccount("demo")
+	// 账号（真实场景由后台/配置下发）
+	acc, err := st.EnsureAccount(*accountID)
 	if err != nil {
 		logrus.Fatal(err)
+	}
+	// 可选：本次启动覆盖账号配置
+	if *stageFlag >= 0 {
+		_ = st.SetStage(acc.ID, *stageFlag)
+	}
+	if *persona != "" {
+		_ = st.SetPersona(acc.ID, *persona)
+	}
+	if *keywords != "" {
+		_ = st.UpdateKeywords(acc.ID, *keywords)
+	}
+	if *stageFlag >= 0 || *persona != "" || *keywords != "" {
+		if a, e := st.GetAccount(acc.ID); e == nil {
+			acc = a
+		}
 	}
 	logrus.Infof("账号 %s 阶段=%s 状态=%s", acc.ID, Stage(acc.Stage), acc.Status)
 
 	eng := NewEngine(st)
 	eng.Commenter = buildCommenter(st)
+	if *minutes > 0 {
+		eng.Duration = time.Duration(*minutes) * time.Minute
+	}
+	eng.ForceBehavior = *behavior
 
 	if *once {
 		if err := eng.RunSession(acc); err != nil {
