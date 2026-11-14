@@ -1,0 +1,4 @@
+interface:
+  display_name: "小红书养号"
+  short_description: "编排小红书养号引擎：登录/阶段/评论/运行/监控全流程"
+  default_prompt: "帮我把小红书养号引擎跑起来：先确认扫码登录，再把 demo 账号设到轻互动阶段，跑一场并汇报结果。"

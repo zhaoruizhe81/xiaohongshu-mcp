@@ -19,7 +19,8 @@ func main() {
 		port     string
 		token    string
 	)
-	flag.BoolVar(&headless, "headless", true, "是否无头模式")
+	// 养号默认用有头模式：无头特征易被识别，仅采集类场景才需要无头。
+	flag.BoolVar(&headless, "headless", false, "是否无头模式（养号默认有头，采集可传 -headless=true）")
 	flag.StringVar(&port, "port", ":18060", "端口")
 	flag.StringVar(&token, "token", "", "鉴权 Token，留空则读取 AUTH_TOKEN")
 	flag.Parse()

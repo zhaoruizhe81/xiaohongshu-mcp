@@ -53,3 +53,6 @@ docker/docker-compose.override.yml
 # 本地分析/调试产物，不进仓库
 debug/
 .worktrees/
+
+# 养号运行时数据
+data/
