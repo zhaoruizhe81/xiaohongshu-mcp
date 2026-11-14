@@ -79,6 +79,7 @@ type BehaviorCtx struct {
 	Stats     *SessionStats
 	Commenter Commenter
 	Persona   string
+	Read      ReadCommentsConfig
 }
 
 func (c *BehaviorCtx) stage() Stage { return Stage(c.Acc.Stage) }
@@ -151,9 +152,9 @@ func (openBehavior) Run(c *BehaviorCtx) error {
 	}
 	c.Stats.Open++
 	noteWatch(c.Ctx, detail)
-	// 多数情况会翻一下评论区（模拟看评论）
-	if rand.Float64() < 0.7 {
-		c.S.ReadComments(c.Ctx, 2+rand.Intn(4)) // 2~5 屏
+	// 按配置概率翻看评论区（模拟看评论）
+	if rand.Float64() < c.Read.OpenProb {
+		c.S.ReadComments(c.Ctx, randRange(c.Read.OpenScreensMin, c.Read.OpenScreensMax), c.Read.DwellMin, c.Read.DwellMax)
 	}
 	return nil
 }
@@ -242,8 +243,8 @@ func (commentBehavior) Run(c *BehaviorCtx) error {
 	}
 	noteWatch(c.Ctx, detail) // 先看一会再评论，像人
 	// 评论前先翻看评论，更像真人
-	if rand.Float64() < 0.6 {
-		c.S.ReadComments(c.Ctx, 1+rand.Intn(3))
+	if rand.Float64() < c.Read.CommentProb {
+		c.S.ReadComments(c.Ctx, randRange(c.Read.CommentScreensMin, c.Read.CommentScreensMax), c.Read.DwellMin, c.Read.DwellMax)
 	}
 	text, err := c.Commenter.Generate(c.Ctx, c.Acc.ID, detail, c.Persona)
 	if err != nil || text == "" {
@@ -355,4 +356,12 @@ func pickKeyword(raw string) string {
 		return ""
 	}
 	return kws[rand.Intn(len(kws))]
+}
+
+// randRange 返回 [min,max] 间的随机整数（max<=min 时返回 min）。
+func randRange(min, max int) int {
+	if max <= min {
+		return min
+	}
+	return min + rand.Intn(max-min+1)
 }

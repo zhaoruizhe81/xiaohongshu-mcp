@@ -57,3 +57,14 @@ LLM_TEMPERATURE=0.85
 ```
 诊断连通：`go run ./cmd/keeper -llmcheck`（只调 LLM 后退出，不开浏览器）。
 视觉需选**多模态**型号（如 GLM 系）；不支持 image_url 会自动退化纯文本。
+
+## 看评论行为参数（可选，环境变量/.env 覆盖）
+| 变量 | 含义 | 默认 |
+|---|---|---|
+| `XHS_CR_OPEN_PROB` | 看笔记后翻评论的概率 0~1 | 0.7 |
+| `XHS_CR_OPEN_SCREENS_MIN/MAX` | 看笔记后翻看屏数范围 | 2 / 5 |
+| `XHS_CR_COMMENT_PROB` | 评论前翻评论概率 0~1 | 0.6 |
+| `XHS_CR_COMMENT_SCREENS_MIN/MAX` | 评论前翻看屏数范围 | 1 / 3 |
+| `XHS_CR_DWELL_MIN/MAX` | 每屏停留秒数范围 | 1 / 4 |
+
+启动时会打印实际生效值。改 `.env` 即可调整"像不像人"的翻评论强度。

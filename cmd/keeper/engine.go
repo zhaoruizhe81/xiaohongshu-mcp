@@ -14,12 +14,15 @@ import (
 // Engine 养号执行引擎：驱动一场会话的行为循环。
 type Engine struct {
 	st            *store.Store
-	Commenter     Commenter     // P4 注入；nil 则不做评论
-	Duration      time.Duration // >0 时覆盖单场时长（调试用；0=按节奏随机）
-	ForceBehavior string        // 非空时只跑该行为（调试/编排用）
+	Commenter     Commenter          // P4 注入；nil 则不做评论
+	Duration      time.Duration      // >0 时覆盖单场时长（调试用；0=按节奏随机）
+	ForceBehavior string             // 非空时只跑该行为（调试/编排用）
+	Read          ReadCommentsConfig // 看评论参数
 }
 
-func NewEngine(st *store.Store) *Engine { return &Engine{st: st} }
+func NewEngine(st *store.Store) *Engine {
+	return &Engine{st: st, Read: loadReadCommentsConfig()}
+}
 
 // RunSession 跑一场养号会话：开常驻浏览器 → 按阶段权重抽样执行行为 → 记录。
 func (e *Engine) RunSession(acc *store.Account) error {
@@ -43,7 +46,7 @@ func (e *Engine) RunSession(acc *store.Account) error {
 	stats := &SessionStats{}
 	bctx := &BehaviorCtx{
 		Ctx: context.Background(), S: s, St: e.st, Acc: acc, Usage: usage,
-		Day: day, Stats: stats, Commenter: e.Commenter, Persona: acc.Persona,
+		Day: day, Stats: stats, Commenter: e.Commenter, Persona: acc.Persona, Read: e.Read,
 	}
 
 	sid, _ := e.st.StartSession(acc.ID)

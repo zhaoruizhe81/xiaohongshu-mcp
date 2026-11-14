@@ -149,7 +149,7 @@ func dwell(ctx context.Context, minS, maxS int) {
 var commentScrollerSelectors = []string{".note-scroller", ".comments-container"}
 
 // ReadComments 在当前详情页下滑评论区，模拟翻看评论（轻量：只滚动+停留，不加载全量）。
-func (s *Session) ReadComments(ctx context.Context, screens int) {
+func (s *Session) ReadComments(ctx context.Context, screens, dwellMin, dwellMax int) {
 	if screens <= 0 {
 		return
 	}
@@ -159,7 +159,7 @@ func (s *Session) ReadComments(ctx context.Context, screens int) {
 		delta := 380 + rand.Float64()*380
 		_ = s.page.Mouse.Scroll(0, delta, 8)
 		time.Sleep(time.Duration(20+rand.Intn(60)) * time.Millisecond)
-		dwell(ctx, 1, 4) // 每屏停留看评论
+		dwell(ctx, dwellMin, dwellMax) // 每屏停留看评论
 	}
 }
 

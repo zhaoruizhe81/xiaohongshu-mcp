@@ -68,6 +68,9 @@ func main() {
 		eng.Duration = time.Duration(*minutes) * time.Minute
 	}
 	eng.ForceBehavior = *behavior
+	logrus.Infof("看评论配置: 看笔记后翻评论 p=%.2f 屏=%d-%d 停留=%d-%ds | 评论前 p=%.2f 屏=%d-%d",
+		eng.Read.OpenProb, eng.Read.OpenScreensMin, eng.Read.OpenScreensMax, eng.Read.DwellMin, eng.Read.DwellMax,
+		eng.Read.CommentProb, eng.Read.CommentScreensMin, eng.Read.CommentScreensMax)
 
 	if *once {
 		if err := eng.RunSession(acc); err != nil {
